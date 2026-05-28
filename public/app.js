@@ -82,7 +82,7 @@ function render() {
     $("rates").innerHTML = "<p class='empty'>No data yet. Waiting for MQTT messages…</p>";
     $("systems").innerHTML = ""; $("sources").innerHTML = "";
     $("calls-body").innerHTML = ""; $("recorders-body").innerHTML = "";
-    $("unit-events").innerHTML = ""; $("recent-body").innerHTML = "";
+    $("recent-body").innerHTML = "";
     $("audio-list").innerHTML = ""; $("audio-count").textContent = "0";
     return;
   }
@@ -161,14 +161,6 @@ function render() {
         </div>`;
       }).join("")
     : "<p class='empty'>No audio received. Enable <code>mqtt_audio: true</code> in the plugin config.</p>";
-
-  $("unit-events").innerHTML = inst.unitEvents.slice(0, 50).map((e) =>
-    `<li><time>${fmtTime(e._ts)}</time> <b>${e.type}</b>
-     ${e.sys_name ? `<span class="muted">${e.sys_name}</span>` : ""}
-     ${e.unit ? `unit <code>${e.unit}</code>` : ""}
-     ${e.talkgroup ? `tg <code>${e.talkgroup}</code>` : ""}
-     ${e.talkgroup_alpha_tag ? `<span class="muted">${e.talkgroup_alpha_tag}</span>` : ""}
-    </li>`).join("");
 
   $("recent-body").innerHTML = inst.recentCalls.length
     ? inst.recentCalls.slice(0, 25).map((c) => `<tr>
