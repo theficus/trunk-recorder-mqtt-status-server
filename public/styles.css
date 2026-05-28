@@ -22,8 +22,8 @@ section h2 { font-size: 13px; text-transform: uppercase; color: var(--muted); ma
 .k { color: var(--muted); }
 .v { font-variant-numeric: tabular-nums; text-align: right; }
 .table-wrap { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; overflow: auto; max-height: 480px; height: 300px; }
-.sources-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
-.sources-grid .card { padding: 6px 8px; }
+.sources-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+.sources-grid .card { padding: 6px 8px; flex: 0 0 auto; }
 .sources-grid .card h3 { font-size: 11px; margin-bottom: 2px; }
 .sources-grid .card div { font-size: 11px; padding: 0; gap: 6px; }
 table { width: 100%; border-collapse: collapse; table-layout: fixed; }
@@ -41,6 +41,9 @@ ul.log { list-style: none; padding: 0; margin: 0; background: var(--panel); bord
 ul.log li { padding: 6px 12px; border-bottom: 1px solid var(--border); font-size: 12px; font-family: ui-monospace, monospace; }
 ul.log li:last-child { border-bottom: none; }
 ul.log time { color: var(--muted); margin-right: 8px; }
+
+.chart-wrap { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; height: 120px; margin-bottom: 12px; }
+.chart-wrap canvas { width: 100% !important; height: 100% !important; }
 
 .audio-list { display: flex; flex-direction: column; gap: 8px; }
 .audio-row { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; }

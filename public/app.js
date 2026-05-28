@@ -180,6 +180,56 @@ function render() {
         <td>${Math.floor(Number(c.length) || 0)}</td>
       </tr>`).join("")
     : `<tr><td colspan="6" class="empty">No recent calls.</td></tr>`;
+
+  updateRecorderChart(inst);
+}
+
+// Recorder activity chart
+let recorderChart = null;
+
+function initChart() {
+  const ctx = $("recorder-chart").getContext("2d");
+  recorderChart = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: ["Recorders"],
+      datasets: [
+        { label: "Recording", data: [0], backgroundColor: "#22c55e", borderRadius: 4 },
+        { label: "Idle", data: [0], backgroundColor: "#f59e0b", borderRadius: 4 },
+        { label: "Available", data: [0], backgroundColor: "#8a93a0", borderRadius: 4 },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 200 },
+      indexAxis: "y",
+      scales: {
+        x: { stacked: true, beginAtZero: true, ticks: { color: "#8a93a0", stepSize: 1, font: { size: 10 } }, grid: { color: "rgba(38,43,51,.5)" } },
+        y: { stacked: true, ticks: { color: "#e6e6e6", font: { size: 11 } }, grid: { display: false } },
+      },
+      plugins: { legend: { labels: { color: "#e6e6e6", boxWidth: 12, font: { size: 11 } } } },
+    },
+  });
+}
+
+function updateRecorderChart(inst) {
+  if (!inst) return;
+  if (!recorderChart) initChart();
+
+  const recs = Object.values(inst.recorders);
+  let recording = 0, idle = 0, available = 0;
+  for (const r of recs) {
+    const st = (r.rec_state_type || "").toLowerCase();
+    if (st === "recording" || r.rec_state === 1) recording++;
+    else if (st === "idle" || r.rec_state === 4) idle++;
+    else available++;
+  }
+
+  recorderChart.data.datasets[0].data = [recording];
+  recorderChart.data.datasets[1].data = [idle];
+  recorderChart.data.datasets[2].data = [available];
+  recorderChart.update();
 }
 
 render();
