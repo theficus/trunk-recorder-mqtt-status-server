@@ -2,12 +2,19 @@
 
 A small Node.js web server that subscribes to events from the
 [`tr-plugin-mqtt`](https://github.com/TrunkRecorder/tr-plugin-mqtt) trunk-recorder
-plugin and serves a live status dashboard in your browser. Inspired by
-[`tr-plugin-websocket-server`](https://github.com/TrunkRecorder/tr-plugin-websocket-server),
-but driven entirely off MQTT — no extra plugin needed inside trunk-recorder
-besides the MQTT status plugin you already have.
+plugin and serves a live status dashboard in your browser.
 
-![dashboard](docs/screenshot.png)
+> **Why not the old status server?**
+> The original [`trunk-recorder-status-server`](https://github.com/TrunkRecorder/trunk-recorder-status-server)
+> (and its companion `tr-plugin-websocket-server`) relied on Boost.Beast
+> WebSockets built into trunk-recorder. Starting with trunk-recorder v4.7+/v5,
+> changes to the Boost dependencies broke that WebSocket interface
+> ([issue #4](https://github.com/TrunkRecorder/tr-plugin-websocket-server/issues/4),
+> [issue #1](https://github.com/TrunkRecorder/tr-plugin-websocket-server/issues/1)).
+> This dashboard replaces that approach entirely — it uses the standalone
+> [MQTT status plugin](https://github.com/TrunkRecorder/tr-plugin-mqtt) (which
+> uses the Paho MQTT library instead of Boost) and requires no WebSocket support
+> in trunk-recorder itself.
 
 ## Features
 
