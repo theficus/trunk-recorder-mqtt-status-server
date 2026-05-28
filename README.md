@@ -34,6 +34,7 @@ plugin and serves a live status dashboard in your browser.
 ```bash
 git clone https://github.com/theficus/trunk-recorder-mqtt-status-server.git
 cd trunk-recorder-mqtt-status-server
+npm install
 ./setup.sh
 ```
 
