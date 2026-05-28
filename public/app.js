@@ -136,12 +136,9 @@ function render() {
   const sources = inst.config?.sources ?? [];
   $("sources").innerHTML = sources.length
     ? sources.map((s, i) => card(`Source ${i} <span class="muted">${s.driver ?? ""}</span>`, [
-        ["Device", s.device], ["Antenna", s.antenna],
         ["Center", `${fmtFreq(s.center)} MHz`],
-        ["Range", `${fmtFreq(s.min_hz)}–${fmtFreq(s.max_hz)} MHz`],
         ["Rate", s.rate], ["Gain", s.gain],
         ["Digital recs", s.digital_recorders], ["Analog recs", s.analog_recorders],
-        ["Debug recs", s.debug_recorders], ["Error (Hz)", s.error],
       ])).join("")
     : "<p class='empty'>No source config retained.</p>";
 
