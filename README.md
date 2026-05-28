@@ -32,8 +32,8 @@ plugin and serves a live status dashboard in your browser.
 ## Quick start
 
 ```bash
-git clone https://github.com/YOUR_USER/trunk-recorder-dashboard.git
-cd trunk-recorder-dashboard
+git clone https://github.com/theficus/trunk-recorder-mqtt-status-server.git
+cd trunk-recorder-mqtt-status-server
 ./setup.sh
 ```
 
