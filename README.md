@@ -145,7 +145,7 @@ No database, no audio handling — just status.
 ## Requirements
 
 - Node.js 18 or newer
-- An MQTT broker reachable from wherever you run the dashboard
+- An MQTT broker (e.g. [Mosquitto](https://mosquitto.org/)) reachable from wherever you run the dashboard
 - A trunk-recorder instance with `libmqtt_status_plugin.so` enabled
 
 ## License
