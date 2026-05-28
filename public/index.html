@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Trunk Recorder Dashboard</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Trunk Recorder Dashboard</h1>
+      <div class="status">
+        <span id="mqtt-pill" class="pill bad">mqtt: ?</span>
+        <span id="ws-pill" class="pill bad">ws: ?</span>
+        <select id="instance-select" title="Instance"></select>
+      </div>
+    </header>
+    <main>
+      <section><h2>Rates</h2><div id="rates" class="grid"></div></section>
+      <section>
+        <h2>Active Calls <span id="calls-count" class="count">0</span></h2>
+        <div class="table-wrap"><table>
+          <thead><tr><th>System</th><th>Freq (MHz)</th><th>Talkgroup</th><th>Tag</th><th>Unit</th><th>Len (s)</th><th>State</th><th>Flags</th></tr></thead>
+          <tbody id="calls-body"></tbody>
+        </table></div>
+      </section>
+      <section>
+        <h2>Recorders <span id="recorders-count" class="count">0</span></h2>
+        <div class="table-wrap"><table>
+          <thead><tr><th>ID</th><th>Type</th><th>Src</th><th>Rec</th><th>Count</th><th>Duration (s)</th><th>Freq (MHz)</th><th>State</th></tr></thead>
+          <tbody id="recorders-body"></tbody>
+        </table></div>
+      </section>
+      <section><h2>Systems</h2><div id="systems" class="grid"></div></section>
+      <section><h2>Sources</h2><div id="sources" class="grid"></div></section>
+      <section><h2>Recent Audio <span id="audio-count" class="count">0</span></h2><div id="audio-list" class="audio-list"></div></section>
+      <section><h2>Recent Unit Activity</h2><ul id="unit-events" class="log"></ul></section>
+      <section>
+        <h2>Recently Ended Calls</h2>
+        <div class="table-wrap"><table>
+          <thead><tr><th>When</th><th>System</th><th>Talkgroup</th><th>Tag</th><th>Unit</th><th>Len (s)</th></tr></thead>
+          <tbody id="recent-body"></tbody>
+        </table></div>
+      </section>
+    </main>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/app.js"></script>
+  </body>
+</html>

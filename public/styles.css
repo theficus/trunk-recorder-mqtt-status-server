@@ -1,0 +1,51 @@
+:root {
+  --bg: #0f1216; --panel: #171b21; --panel-2: #1c2129;
+  --border: #262b33; --text: #e6e6e6; --muted: #8a93a0;
+  --accent: #4ea1ff; --good: #22c55e; --bad: #ef4444; --warn: #f59e0b;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: ui-sans-serif, system-ui, sans-serif; background: var(--bg); color: var(--text); }
+header { display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--bg); z-index: 10; }
+header h1 { font-size: 18px; margin: 0; }
+.status { display: flex; gap: 8px; align-items: center; }
+.pill { padding: 4px 10px; border-radius: 999px; background: var(--panel); border: 1px solid var(--border); font-size: 12px; font-family: ui-monospace, monospace; }
+.pill.good { color: var(--good); border-color: rgba(34,197,94,.4); }
+.pill.bad { color: var(--bad); border-color: rgba(239,68,68,.4); }
+#instance-select { background: var(--panel); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px; font-size: 13px; }
+main { padding: 20px; display: grid; gap: 24px; }
+section h2 { font-size: 13px; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; letter-spacing: .08em; display: flex; align-items: center; gap: 8px; }
+.count { background: var(--panel-2); color: var(--text); padding: 1px 8px; border-radius: 999px; font-size: 11px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+.card h3 { margin: 0 0 8px; font-size: 14px; color: var(--accent); font-weight: 600; }
+.card div { display: flex; justify-content: space-between; font-size: 13px; padding: 2px 0; gap: 12px; }
+.k { color: var(--muted); }
+.v { font-variant-numeric: tabular-nums; text-align: right; }
+.table-wrap { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; overflow: auto; max-height: 480px; }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 8px 12px; font-size: 13px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+th { color: var(--muted); font-weight: 600; background: var(--panel-2); position: sticky; top: 0; }
+tr:last-child td { border-bottom: none; }
+td.empty, p.empty { color: var(--muted); font-style: italic; text-align: center; padding: 16px; }
+.muted { color: var(--muted); font-size: 11px; }
+.flags { color: var(--warn); font-family: ui-monospace, monospace; font-size: 11px; }
+code { background: var(--panel-2); padding: 1px 6px; border-radius: 4px; font-size: 12px; }
+.state-recording { color: var(--good); font-weight: 600; }
+.state-active { color: var(--accent); font-weight: 600; }
+.state-idle, .state-inactive { color: var(--muted); }
+ul.log { list-style: none; padding: 0; margin: 0; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; max-height: 320px; overflow: auto; }
+ul.log li { padding: 6px 12px; border-bottom: 1px solid var(--border); font-size: 12px; font-family: ui-monospace, monospace; }
+ul.log li:last-child { border-bottom: none; }
+ul.log time { color: var(--muted); margin-right: 8px; }
+
+.audio-list { display: flex; flex-direction: column; gap: 8px; }
+.audio-row { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; }
+.audio-meta { display: flex; flex-direction: column; gap: 2px; font-size: 13px; min-width: 0; }
+.audio-meta b { color: var(--accent); }
+.audio-players { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.audio-players audio { height: 32px; }
+.audio-players .dl { color: var(--muted); font-size: 11px; text-decoration: none; padding: 2px 6px; border: 1px solid var(--border); border-radius: 4px; }
+.audio-players .dl:hover { color: var(--accent); border-color: var(--accent); }
+@media (max-width: 640px) {
+  .audio-row { grid-template-columns: 1fr; }
+}
