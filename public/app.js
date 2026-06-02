@@ -6,6 +6,7 @@ let currentInstance = null;
 
 const wsPill = $("ws-pill");
 const mqttPill = $("mqtt-pill");
+const loadAvgEl = $("load-avg");
 const instSelect = $("instance-select");
 
 socket.on("connect", () => setPill(wsPill, "ws: connected", true));
@@ -17,9 +18,16 @@ socket.on("mqtt-status", (s) =>
 socket.on("snapshot", (data) => {
   instances = data.instances || {};
   setPill(mqttPill, data.mqttConnected ? "mqtt: connected" : "mqtt: disconnected", data.mqttConnected);
+  if (data.loadAvg) updateLoadAvg(data.loadAvg);
   refreshInstanceList();
   render();
 });
+
+socket.on("load-avg", (avg) => updateLoadAvg(avg));
+
+function updateLoadAvg(avg) {
+  loadAvgEl.textContent = `load: ${avg.map((v) => v.toFixed(2)).join(" / ")}`;
+}
 
 socket.on("update", ({ instance_id, instance }) => {
   instances[instance_id] = instance;
@@ -68,6 +76,91 @@ function flags(c) {
   if (c.analog) out.push("ANALOG");
   return out.join(" ");
 }
+
+let _renderedCalls = [];
+let _renderedRecs = [];
+let _overlaySource = null; // { type, key }
+
+function overlayKey(type, obj) {
+  if (type === "calls") return obj.freq + "|" + (obj.talkgroup ?? "");
+  if (type === "recorders") return String(obj.id);
+  if (type === "recent") return (obj.start_time || "") + "|" + (obj.freq || "") + "|" + (obj.talkgroup || "");
+  return null;
+}
+
+function showOverlay(title, obj, source) {
+  _overlaySource = source || null;
+  $("overlay-title").textContent = title;
+  renderOverlayBody(obj);
+  $("detail-overlay").classList.remove("hidden");
+  document.body.style.overflow = "hidden";
+}
+
+function renderOverlayBody(obj) {
+  const timeKeys = /time|_ts|start|stop|ctime|date|created|updated|seen/i;
+  const rows = Object.entries(obj)
+    .filter(([k, v]) => v !== null && v !== undefined && v !== "" && !k.startsWith("_"))
+    .map(([k, v]) => {
+      let display;
+      if (timeKeys.test(k) && typeof v === "number" && v > 1e9 && v < 2e10) {
+        display = new Date(v * 1000).toLocaleString();
+      } else if (typeof v === "object") {
+        display = JSON.stringify(v);
+      } else {
+        display = String(v);
+      }
+      return `<span class="k">${k}</span><span class="v">${display}</span>`;
+    })
+    .join("");
+  $("overlay-body").innerHTML = rows;
+}
+
+function refreshOverlay() {
+  if (!_overlaySource || $("detail-overlay").classList.contains("hidden")) return;
+  const { type, key } = _overlaySource;
+  let list;
+  if (type === "calls") list = _renderedCalls;
+  else if (type === "recorders") list = _renderedRecs;
+  else if (type === "recent") {
+    const inst = currentInstance ? instances[currentInstance] : null;
+    list = inst ? inst.recentCalls : [];
+  }
+  const obj = (list || []).find((o) => overlayKey(type, o) === key);
+  if (obj) {
+    renderOverlayBody(obj);
+    $("overlay-title").textContent = _overlaySource._title || "Details";
+  } else if (type === "calls") {
+    $("overlay-title").textContent = "Call Details — Ended";
+  }
+}
+
+function closeOverlay(e) {
+  if (!e || e.target === $("detail-overlay") || e.target.closest(".overlay-close")) {
+    $("detail-overlay").classList.add("hidden");
+    document.body.style.overflow = "";
+    _overlaySource = null;
+  }
+}
+
+document.addEventListener("click", (e) => {
+  const row = e.target.closest("tbody tr");
+  if (!row || row.querySelector(".empty")) return;
+  const tbody = row.closest("tbody");
+  const idx = Array.from(tbody.children).indexOf(row);
+  if (tbody.id === "calls-body" && _renderedCalls[idx]) {
+    const obj = _renderedCalls[idx];
+    showOverlay("Call Details — Active", obj, { type: "calls", key: overlayKey("calls", obj), _title: "Call Details — Active" });
+  } else if (tbody.id === "recorders-body" && _renderedRecs[idx]) {
+    const obj = _renderedRecs[idx];
+    showOverlay("Recorder Details", obj, { type: "recorders", key: overlayKey("recorders", obj), _title: "Recorder Details" });
+  } else if (tbody.id === "recent-body") {
+    const inst = currentInstance ? instances[currentInstance] : null;
+    if (inst && inst.recentCalls[idx]) {
+      const obj = inst.recentCalls[idx];
+      showOverlay("Recent Call Details", obj, { type: "recent", key: overlayKey("recent", obj), _title: "Recent Call Details" });
+    }
+  }
+});
 function card(title, rows) {
   const inner = rows
     .filter(([, v]) => v !== undefined && v !== null && v !== "")
@@ -98,9 +191,10 @@ function render() {
     : "<p class='empty'>No rate reports yet.</p>";
 
   const calls = Object.values(inst.activeCalls);
-  $("calls-count").textContent = calls.length;
-  $("calls-body").innerHTML = calls.length
-    ? calls.sort((a, b) => (b.elapsed || 0) - (a.elapsed || 0)).map((c) => `<tr>
+  _renderedCalls = calls.sort((a, b) => (b.elapsed || 0) - (a.elapsed || 0));
+  $("calls-count").textContent = _renderedCalls.length;
+  $("calls-body").innerHTML = _renderedCalls.length
+    ? _renderedCalls.map((c) => `<tr class="${c.encrypted ? "encrypted" : ""}">
         <td>${c.sys_name ?? ""} <span class="muted">(${c.sys_num ?? ""})</span></td>
         <td>${fmtFreq(c.freq)}</td>
         <td>${c.talkgroup ?? ""}</td>
@@ -112,12 +206,12 @@ function render() {
       </tr>`).join("")
     : `<tr><td colspan="8" class="empty">No active calls.</td></tr>`;
 
-  const recs = Object.values(inst.recorders).sort((a, b) =>
+  _renderedRecs = Object.values(inst.recorders).sort((a, b) =>
     String(a.id).localeCompare(String(b.id), undefined, { numeric: true })
   );
-  $("recorders-count").textContent = recs.length;
-  $("recorders-body").innerHTML = recs.length
-    ? recs.map((r) => `<tr>
+  $("recorders-count").textContent = _renderedRecs.length;
+  $("recorders-body").innerHTML = _renderedRecs.length
+    ? _renderedRecs.map((r) => `<tr class="${r.rec_state === 0 || (r.rec_state_type || '').toLowerCase() === 'monitoring' ? 'monitoring' : ''}">
         <td>${r.id}</td><td>${r.type ?? ""}</td><td>${r.src_num ?? ""}</td><td>${r.rec_num ?? ""}</td>
         <td>${r.count ?? ""}</td><td>${Math.floor(Number(r.duration) || 0)}</td>
         <td>${fmtFreq(r.freq)}</td>
@@ -174,6 +268,7 @@ function render() {
     : `<tr><td colspan="6" class="empty">No recent calls.</td></tr>`;
 
   updateRecorderChart(inst);
+  refreshOverlay();
 }
 
 // Recorder activity chart

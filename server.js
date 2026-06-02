@@ -4,6 +4,7 @@ import { Server } from "socket.io";
 import mqtt from "mqtt";
 import fs from "fs";
 import path from "path";
+import os from "os";
 
 const PORT = process.env.PORT || 3000;
 const MQTT_URL = process.env.MQTT_URL || "mqtt://localhost:1883";
@@ -218,11 +219,15 @@ client.on("message", (topic, payload) => {
 
 io.on("connection", (socket) => {
   console.log(`[ws] client connected (${io.engine.clientsCount})`);
-  socket.emit("snapshot", { instances, mqttConnected: client.connected });
+  socket.emit("snapshot", { instances, mqttConnected: client.connected, loadAvg: os.loadavg() });
   socket.on("disconnect", () =>
     console.log(`[ws] client disconnected (${io.engine.clientsCount})`)
   );
 });
+
+setInterval(() => {
+  io.emit("load-avg", os.loadavg());
+}, 5000);
 
 server.listen(PORT, () => {
   console.log(`[http] dashboard on http://localhost:${PORT}`);
