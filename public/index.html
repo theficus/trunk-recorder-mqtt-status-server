@@ -12,6 +12,7 @@
       <div class="status">
         <span id="mqtt-pill" class="pill bad">mqtt: ?</span>
         <span id="ws-pill" class="pill bad">ws: ?</span>
+        <span id="load-avg" class="pill" title="Server load average (1m / 5m / 15m)">load: —</span>
         <select id="instance-select" title="Instance"></select>
       </div>
     </header>
@@ -43,6 +44,13 @@
         </table></div>
       </section>
     </main>
+    <div id="detail-overlay" class="overlay hidden" onclick="closeOverlay(event)">
+      <div class="overlay-panel">
+        <button class="overlay-close" onclick="closeOverlay()">&times;</button>
+        <h3 id="overlay-title"></h3>
+        <div id="overlay-body" class="overlay-content"></div>
+      </div>
+    </div>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     <script src="/app.js"></script>
