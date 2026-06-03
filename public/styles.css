@@ -24,6 +24,9 @@ section h2 { font-size: 13px; text-transform: uppercase; color: var(--muted); ma
 .table-wrap { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; overflow: auto; max-height: 480px; height: 300px; }
 .rates-cards { display: flex; flex-wrap: wrap; gap: 12px; }
 .rates-cards .card { flex: 0 1 auto; min-width: 200px; }
+.rates-row { display: flex; gap: 12px; align-items: stretch; flex-wrap: nowrap; }
+.rates-row .rates-cards { flex: 0 0 auto; }
+.rates-row .rates-chart { flex: 1 1 0; min-width: 200px; margin-bottom: 0; height: auto; }
 .sources-grid { display: flex; flex-wrap: wrap; gap: 6px; }
 .sources-grid .card { padding: 6px 8px; flex: 0 0 auto; }
 .sources-grid .card h3 { font-size: 11px; margin-bottom: 2px; }

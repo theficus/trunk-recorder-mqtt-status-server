@@ -48,6 +48,7 @@ function getInstance(id) {
       messages: [],
       pluginStatus: null,
       lastSeen: null,
+      callCounts: {},
     };
   }
   return instances[key];
@@ -114,7 +115,9 @@ client.on("message", (topic, payload) => {
       break;
     }
     case "rates":
-      for (const r of msg.rates || []) inst.rates[r.sys_num] = { ...r, _ts: Date.now() };
+      for (const r of msg.rates || []) {
+        inst.rates[r.sys_num] = { ...r, _ts: Date.now() };
+      }
       break;
     case "recorders":
       inst.recorders = {};
@@ -130,6 +133,7 @@ client.on("message", (topic, payload) => {
       for (const c of msg.calls || []) {
         inst.activeCalls[c.id] = { ...inst.activeCalls[c.id], ...c, _ts: Date.now() };
         seen.add(c.id);
+        if (c.call_num != null) inst.callCounts[c.sys_num ?? "_"] = Math.max(Number(c.call_num) || 0, inst.callCounts[c.sys_num ?? "_"] || 0);
       }
       for (const id of Object.keys(inst.activeCalls)) {
         if (!seen.has(id)) delete inst.activeCalls[id];
@@ -138,7 +142,10 @@ client.on("message", (topic, payload) => {
     }
     case "call_start": {
       const c = msg.call;
-      if (c) inst.activeCalls[c.id] = { ...c, _ts: Date.now() };
+      if (c) {
+        inst.activeCalls[c.id] = { ...c, _ts: Date.now() };
+        if (c.call_num != null) inst.callCounts[c.sys_num ?? "_"] = Math.max(Number(c.call_num) || 0, inst.callCounts[c.sys_num ?? "_"] || 0);
+      }
       break;
     }
     case "call_end": {
@@ -146,6 +153,7 @@ client.on("message", (topic, payload) => {
       if (c) {
         delete inst.activeCalls[c.id];
         pushCapped(inst.recentCalls, { ...c, _endedAt: Date.now() });
+        if (c.call_num != null) inst.callCounts[c.sys_num ?? "_"] = Math.max(Number(c.call_num) || 0, inst.callCounts[c.sys_num ?? "_"] || 0);
       }
       break;
     }
