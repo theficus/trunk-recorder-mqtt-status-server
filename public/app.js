@@ -186,6 +186,7 @@ function render() {
         ["Decode rate", `${Number(r.decoderate).toFixed(2)}/s`],
         ["Interval", `${r.decoderate_interval}s`],
         ["Control ch", fmtFreq(r.control_channel) + " MHz"],
+        ["Total calls", inst.callCounts[r.sys_num] || ""],
         ["Updated", fmtTime(r._ts)],
       ])).join("")
     : "<p class='empty'>No rate reports yet.</p>";
@@ -268,6 +269,7 @@ function render() {
     : `<tr><td colspan="6" class="empty">No recent calls.</td></tr>`;
 
   updateRecorderChart(inst);
+  updateDecodeRateChart(inst);
   refreshOverlay();
 }
 
@@ -317,6 +319,86 @@ function updateRecorderChart(inst) {
   recorderChart.data.datasets[1].data = [idle];
   recorderChart.data.datasets[2].data = [available];
   recorderChart.update();
+}
+
+// Decode rate history chart
+let decodeRateChart = null;
+const decodeRateHistory = {}; // keyed by sys_num, each is array of {t, v}
+const decodeRateStats = {}; // keyed by sys_num, {high, low}
+const DECODE_RATE_MAX_POINTS = 10;
+
+function initDecodeRateChart() {
+  const ctx = $("decode-rate-chart").getContext("2d");
+  decodeRateChart = new Chart(ctx, {
+    type: "line",
+    data: { labels: [], datasets: [] },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      scales: {
+        x: { ticks: { color: "#8a93a0", font: { size: 9 }, maxRotation: 0 }, grid: { color: "rgba(38,43,51,.3)" } },
+        y: { beginAtZero: true, ticks: { color: "#8a93a0", font: { size: 10 } }, grid: { color: "rgba(38,43,51,.5)" } },
+      },
+      plugins: {
+        legend: { labels: { color: "#e6e6e6", boxWidth: 12, font: { size: 11 } } },
+        tooltip: { enabled: true },
+      },
+      elements: { point: { radius: 3, hoverRadius: 5 }, line: { tension: 0.3, borderWidth: 2 } },
+    },
+  });
+}
+
+function updateDecodeRateChart(inst) {
+  if (!inst) return;
+  if (!decodeRateChart) initDecodeRateChart();
+
+  const rates = Object.values(inst.rates);
+  let changed = false;
+  for (const r of rates) {
+    const key = r.sys_num;
+    if (!decodeRateHistory[key]) decodeRateHistory[key] = [];
+    if (!decodeRateStats[key]) decodeRateStats[key] = { high: -Infinity, low: Infinity };
+    const hist = decodeRateHistory[key];
+    const val = Number(r.decoderate) || 0;
+    if (!hist.length || hist[hist.length - 1].t !== r._ts) {
+      hist.push({ t: r._ts, v: val });
+      if (hist.length > DECODE_RATE_MAX_POINTS) hist.shift();
+      decodeRateStats[key].high = Math.max(decodeRateStats[key].high, val);
+      decodeRateStats[key].low = Math.min(decodeRateStats[key].low, val);
+      changed = true;
+    }
+  }
+
+  if (!changed) return;
+
+  // Use timestamps from first system as labels
+  const firstKey = Object.keys(decodeRateHistory)[0];
+  const labels = firstKey ? decodeRateHistory[firstKey].map((p) => new Date(p.t).toLocaleTimeString()) : [];
+  decodeRateChart.data.labels = labels;
+
+  const colors = ["#4ea1ff", "#22c55e", "#f59e0b", "#ef4444", "#a78bfa"];
+  const entries = Object.entries(decodeRateHistory);
+
+  while (decodeRateChart.data.datasets.length > entries.length) decodeRateChart.data.datasets.pop();
+  entries.forEach(([sysNum, hist], i) => {
+    const stats = decodeRateStats[sysNum];
+    const lbl = (rates.find((r) => String(r.sys_num) === sysNum)?.sys_name || `sys ${sysNum}`)
+      + ` (H:${stats.high.toFixed(2)} L:${stats.low.toFixed(2)})`;
+    const data = hist.map((p) => p.v);
+    if (decodeRateChart.data.datasets[i]) {
+      decodeRateChart.data.datasets[i].data = data;
+      decodeRateChart.data.datasets[i].label = lbl;
+    } else {
+      decodeRateChart.data.datasets.push({
+        label: lbl,
+        data,
+        borderColor: colors[i % colors.length],
+        fill: false,
+      });
+    }
+  });
+  decodeRateChart.update("none");
 }
 
 render();
