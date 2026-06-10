@@ -59,6 +59,16 @@ function pushCapped(arr, item, cap = 100) {
   if (arr.length > cap) arr.length = cap;
 }
 
+function updateCallCount(inst, call) {
+  if (call?.call_num == null) return;
+
+  const callNum = Number(call.call_num);
+  if (!Number.isFinite(callNum)) return;
+
+  const key = call.sys_num ?? "_";
+  inst.callCounts[key] = Math.max(callNum, inst.callCounts[key] || 0);
+}
+
 const mqttOpts = {
   reconnectPeriod: 2000,
   clientId: `tr-dashboard-${Math.random().toString(16).slice(2, 10)}`,
@@ -133,7 +143,7 @@ client.on("message", (topic, payload) => {
       for (const c of msg.calls || []) {
         inst.activeCalls[c.id] = { ...inst.activeCalls[c.id], ...c, _ts: Date.now() };
         seen.add(c.id);
-        if (c.call_num != null) inst.callCounts[c.sys_num ?? "_"] = Math.max(Number(c.call_num) || 0, inst.callCounts[c.sys_num ?? "_"] || 0);
+        updateCallCount(inst, c);
       }
       for (const id of Object.keys(inst.activeCalls)) {
         if (!seen.has(id)) delete inst.activeCalls[id];
@@ -144,7 +154,7 @@ client.on("message", (topic, payload) => {
       const c = msg.call;
       if (c) {
         inst.activeCalls[c.id] = { ...c, _ts: Date.now() };
-        if (c.call_num != null) inst.callCounts[c.sys_num ?? "_"] = Math.max(Number(c.call_num) || 0, inst.callCounts[c.sys_num ?? "_"] || 0);
+        updateCallCount(inst, c);
       }
       break;
     }
@@ -153,7 +163,7 @@ client.on("message", (topic, payload) => {
       if (c) {
         delete inst.activeCalls[c.id];
         pushCapped(inst.recentCalls, { ...c, _endedAt: Date.now() });
-        if (c.call_num != null) inst.callCounts[c.sys_num ?? "_"] = Math.max(Number(c.call_num) || 0, inst.callCounts[c.sys_num ?? "_"] || 0);
+        updateCallCount(inst, c);
       }
       break;
     }
@@ -210,6 +220,7 @@ client.on("message", (topic, payload) => {
     }
     case "call": case "end": case "on": case "off":
     case "ackresp": case "join": case "data": case "ans_req": case "location":
+      updateCallCount(inst, msg[type]);
       pushCapped(inst.unitEvents, { type, ...msg, _ts: Date.now() }, 200);
       break;
     case "message": case "messages":
