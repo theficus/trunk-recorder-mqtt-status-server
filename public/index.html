@@ -26,6 +26,7 @@
       </section>
       <section>
         <h2>Recorders <span id="recorders-count" class="count">0</span></h2>
+        <div id="recorder-alert" class="alert hidden"></div>
         <div class="chart-wrap"><canvas id="recorder-chart"></canvas></div>
         <div class="table-wrap"><table>
           <thead><tr><th>ID</th><th>Type</th><th>Src</th><th>Rec</th><th>Count</th><th>Duration (s)</th><th>Freq (MHz)</th><th>State</th></tr></thead>
@@ -35,8 +36,15 @@
       <section>
         <h2>Active Calls <span id="calls-count" class="count">0</span></h2>
         <div class="table-wrap"><table>
-          <thead><tr><th>System</th><th>Freq (MHz)</th><th>Talkgroup</th><th>Tag</th><th>Unit</th><th>Len (s)</th><th>State</th><th>Flags</th></tr></thead>
+          <thead><tr><th>System</th><th>SDR</th><th>Freq (MHz)</th><th>Talkgroup</th><th>Tag</th><th>Unit</th><th>Len (s)</th><th>State</th><th>Flags</th></tr></thead>
           <tbody id="calls-body"></tbody>
+        </table></div>
+      </section>
+      <section>
+        <h2>Missed Calls <span id="missed-count" class="count">0</span></h2>
+        <div class="table-wrap compact"><table>
+          <thead><tr><th>When</th><th>Status</th><th>System</th><th>SDR</th><th>Freq (MHz)</th><th>Talkgroup</th><th>Tag</th><th>Reason</th></tr></thead>
+          <tbody id="missed-body"></tbody>
         </table></div>
       </section>
       <section><h2>Systems</h2><div id="systems" class="sources-grid"></div></section>
@@ -59,6 +67,7 @@
     </div>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
     <script src="/socket.io/socket.io.js"></script>
+    <script src="/demo-data.js"></script>
     <script src="/app.js"></script>
   </body>
 </html>

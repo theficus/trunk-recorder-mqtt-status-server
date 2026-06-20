@@ -2,11 +2,12 @@ import express from "express";
 import http from "http";
 import { Server } from "socket.io";
 import mqtt from "mqtt";
+import multer from "multer";
 import fs from "fs";
 import path from "path";
 import os from "os";
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3080;
 const MQTT_URL = process.env.MQTT_URL || "mqtt://localhost:1883";
 const MQTT_USERNAME = process.env.MQTT_USERNAME;
 const MQTT_PASSWORD = process.env.MQTT_PASSWORD;
@@ -22,6 +23,7 @@ const server = http.createServer(app);
 const io = new Server(server, { maxHttpBufferSize: 50 * 1024 * 1024 });
 
 app.use(express.static("public"));
+app.get("/demo", (_req, res) => res.sendFile(path.resolve("public/index.html")));
 
 if (AUDIO_ENABLED) {
   fs.mkdirSync(RECORDINGS_DIR, { recursive: true });
@@ -49,6 +51,9 @@ function getInstance(id) {
       pluginStatus: null,
       lastSeen: null,
       callCounts: {},
+      callDurations: {},
+      completedCallIds: {},
+      completedCallIdOrder: [],
     };
   }
   return instances[key];
@@ -69,6 +74,50 @@ function updateCallCount(inst, call) {
   inst.callCounts[key] = Math.max(callNum, inst.callCounts[key] || 0);
 }
 
+function completedCallKey(call) {
+  return [
+    call.id ?? "",
+    call.sys_num ?? "",
+    call.call_num ?? "",
+    call.start_time ?? "",
+    call.stop_time ?? "",
+    call.freq ?? "",
+    call.talkgroup ?? "",
+  ].join("|");
+}
+
+function updateCapturedDuration(inst, call) {
+  const length = Number(call?.length ?? call?.call_length);
+  if (!Number.isFinite(length) || length <= 0) return;
+
+  const id = completedCallKey(call);
+  if (inst.completedCallIds[id]) return;
+
+  inst.completedCallIds[id] = true;
+  inst.completedCallIdOrder.push(id);
+  if (inst.completedCallIdOrder.length > 5000) {
+    delete inst.completedCallIds[inst.completedCallIdOrder.shift()];
+  }
+
+  const key = call.sys_num ?? "_";
+  inst.callDurations[key] = (inst.callDurations[key] || 0) + length;
+}
+
+function pruneRecordings() {
+  const keep = new Set(
+    Object.values(instances).flatMap((inst) =>
+      inst.audioCalls.flatMap((c) => c.files.map((f) => f.name))
+    )
+  );
+  try {
+    for (const f of fs.readdirSync(RECORDINGS_DIR)) {
+      if (!keep.has(f)) fs.unlinkSync(path.join(RECORDINGS_DIR, f));
+    }
+  } catch (e) {
+    console.error("[audio] prune failed", e.message);
+  }
+}
+
 const mqttOpts = {
   reconnectPeriod: 2000,
   clientId: `tr-dashboard-${Math.random().toString(16).slice(2, 10)}`,
@@ -86,6 +135,62 @@ app.get("/healthz", (_req, res) =>
     audio_enabled: AUDIO_ENABLED,
   })
 );
+
+// POST /api/call-upload — accept audio file + metadata (mirrors MQTT audio flow)
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
+app.use(express.json());
+
+app.post("/api/call-upload", upload.single("audio"), (req, res) => {
+  if (!AUDIO_ENABLED) {
+    return res.status(400).json({ error: "Audio is not enabled on this server" });
+  }
+
+  let meta;
+  try {
+    meta = typeof req.body.metadata === "string" ? JSON.parse(req.body.metadata) : (req.body.metadata || {});
+  } catch {
+    return res.status(400).json({ error: "Invalid metadata JSON" });
+  }
+
+  const instanceId = req.body.instance_id || meta.instance_id || "default";
+  const inst = getInstance(instanceId);
+  inst.lastSeen = Date.now();
+
+  const stamp = meta.start_time || Math.floor(Date.now() / 1000);
+  const safeId = `${meta.short_name || inst.instance_id}-${meta.talkgroup || "tg"}-${stamp}`
+    .replace(/[^a-zA-Z0-9_.-]/g, "_");
+
+  const entry = {
+    id: safeId,
+    metadata: meta,
+    files: [],
+    _ts: Date.now(),
+  };
+
+  if (req.file) {
+    const ext = path.extname(req.file.originalname) || mimeToExt(req.file.mimetype);
+    const fileName = `${safeId}${ext}`;
+    const fullPath = path.join(RECORDINGS_DIR, fileName);
+    try {
+      fs.writeFileSync(fullPath, req.file.buffer);
+      entry.files.push({ url: `/recordings/${fileName}`, mime: req.file.mimetype, name: fileName });
+    } catch (e) {
+      console.error("[upload] write failed", fileName, e.message);
+      return res.status(500).json({ error: "Failed to write audio file" });
+    }
+  }
+
+  pushCapped(inst.audioCalls, entry, AUDIO_RETENTION);
+  if (inst.audioCalls.length >= AUDIO_RETENTION) pruneRecordings();
+
+  io.emit("update", { instance_id: inst.instance_id, type: "audio", instance: inst });
+  res.json({ ok: true, id: safeId, files: entry.files });
+});
+
+function mimeToExt(mime) {
+  const map = { "audio/wav": ".wav", "audio/x-wav": ".wav", "audio/mp4": ".m4a", "audio/mpeg": ".mp3", "audio/ogg": ".ogg" };
+  return map[mime] || ".bin";
+}
 
 const SUBS = [`${TOPIC}/#`, `${UNIT_TOPIC}/#`, `${MESSAGE_TOPIC}/#`];
 
@@ -164,6 +269,7 @@ client.on("message", (topic, payload) => {
         delete inst.activeCalls[c.id];
         pushCapped(inst.recentCalls, { ...c, _endedAt: Date.now() });
         updateCallCount(inst, c);
+        updateCapturedDuration(inst, c);
       }
       break;
     }
@@ -206,16 +312,7 @@ client.on("message", (topic, payload) => {
       }
 
       pushCapped(inst.audioCalls, entry, AUDIO_RETENTION);
-
-      // Prune older files beyond retention
-      if (inst.audioCalls.length >= AUDIO_RETENTION) {
-        const keep = new Set(inst.audioCalls.flatMap((c) => c.files.map((f) => f.name)));
-        try {
-          for (const f of fs.readdirSync(RECORDINGS_DIR)) {
-            if (!keep.has(f)) fs.unlinkSync(path.join(RECORDINGS_DIR, f));
-          }
-        } catch {}
-      }
+      if (inst.audioCalls.length >= AUDIO_RETENTION) pruneRecordings();
       break;
     }
     case "call": case "end": case "on": case "off":

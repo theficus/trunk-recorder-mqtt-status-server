@@ -40,6 +40,7 @@ No test suite, linter, or build step exists.
 - ES modules (`"type": "module"` in package.json) — use `import`, not `require`.
 - All configuration is via environment variables (see `.env.example`).
 - The frontend is plain vanilla JS with no bundler — just edit files in `public/` directly.
+- UI changes should update the demo screenshot (`docs/images/dashboard-demo.png`) and include it with the PR.
 - Helper `pushCapped(arr, item, cap)` is used throughout to maintain bounded arrays (prevents memory growth).
 - MQTT message type is determined by `msg.type` field or the last segment of the topic path.
 - The `/healthz` endpoint returns MQTT connection status and known instance IDs.
