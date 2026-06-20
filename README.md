@@ -4,6 +4,8 @@ A small Node.js web server that subscribes to events from the
 [`tr-plugin-mqtt`](https://github.com/TrunkRecorder/tr-plugin-mqtt) trunk-recorder
 plugin and serves a live status dashboard in your browser.
 
+![Demo dashboard screenshot](docs/images/dashboard-demo.png)
+
 > **Why not the old status server?**
 > The original [`trunk-recorder-status-server`](https://github.com/TrunkRecorder/trunk-recorder-status-server)
 > (and its companion `tr-plugin-websocket-server`) relied on Boost.Beast
@@ -19,8 +21,9 @@ plugin and serves a live status dashboard in your browser.
 ## Features
 
 - Live decode rates per system
+- Total calls and captured audio time per system
 - Active calls table (talkgroup, tag, unit, length, flags)
-- Recorders table (id, type, src/rec num, duration, state)
+- Recorders table, live graph split by SDR device, missed-calls table, and conspicuous no-recorder alerts
 - Systems cards (sys_num, type, sysid, wacn, nac, rfss, site)
 - Sources cards (driver, device, gain, ranges) from the retained `config` message
 - **Audio playback** of completed calls (when `mqtt_audio: true`)
@@ -65,6 +68,10 @@ npm start                 # same thing, without .env auto-load
 ```
 
 Then open [http://localhost:3080](http://localhost:3080).
+
+Demo mode with mock data is available at [http://localhost:3080/demo](http://localhost:3080/demo)
+or by adding `?demo=1` to the dashboard URL. It renders synthetic values only and
+does not use live MQTT data.
 
 ## Configuration
 

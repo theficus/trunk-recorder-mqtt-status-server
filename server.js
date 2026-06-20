@@ -23,6 +23,7 @@ const server = http.createServer(app);
 const io = new Server(server, { maxHttpBufferSize: 50 * 1024 * 1024 });
 
 app.use(express.static("public"));
+app.get("/demo", (_req, res) => res.sendFile(path.resolve("public/index.html")));
 
 if (AUDIO_ENABLED) {
   fs.mkdirSync(RECORDINGS_DIR, { recursive: true });
@@ -50,6 +51,9 @@ function getInstance(id) {
       pluginStatus: null,
       lastSeen: null,
       callCounts: {},
+      callDurations: {},
+      completedCallIds: {},
+      completedCallIdOrder: [],
     };
   }
   return instances[key];
@@ -68,6 +72,50 @@ function updateCallCount(inst, call) {
 
   const key = call.sys_num ?? "_";
   inst.callCounts[key] = Math.max(callNum, inst.callCounts[key] || 0);
+}
+
+function completedCallKey(call) {
+  return [
+    call.id ?? "",
+    call.sys_num ?? "",
+    call.call_num ?? "",
+    call.start_time ?? "",
+    call.stop_time ?? "",
+    call.freq ?? "",
+    call.talkgroup ?? "",
+  ].join("|");
+}
+
+function updateCapturedDuration(inst, call) {
+  const length = Number(call?.length ?? call?.call_length);
+  if (!Number.isFinite(length) || length <= 0) return;
+
+  const id = completedCallKey(call);
+  if (inst.completedCallIds[id]) return;
+
+  inst.completedCallIds[id] = true;
+  inst.completedCallIdOrder.push(id);
+  if (inst.completedCallIdOrder.length > 5000) {
+    delete inst.completedCallIds[inst.completedCallIdOrder.shift()];
+  }
+
+  const key = call.sys_num ?? "_";
+  inst.callDurations[key] = (inst.callDurations[key] || 0) + length;
+}
+
+function pruneRecordings() {
+  const keep = new Set(
+    Object.values(instances).flatMap((inst) =>
+      inst.audioCalls.flatMap((c) => c.files.map((f) => f.name))
+    )
+  );
+  try {
+    for (const f of fs.readdirSync(RECORDINGS_DIR)) {
+      if (!keep.has(f)) fs.unlinkSync(path.join(RECORDINGS_DIR, f));
+    }
+  } catch (e) {
+    console.error("[audio] prune failed", e.message);
+  }
 }
 
 const mqttOpts = {
@@ -133,16 +181,7 @@ app.post("/api/call-upload", upload.single("audio"), (req, res) => {
   }
 
   pushCapped(inst.audioCalls, entry, AUDIO_RETENTION);
-
-  // Prune older files beyond retention
-  if (inst.audioCalls.length >= AUDIO_RETENTION) {
-    const keep = new Set(inst.audioCalls.flatMap((c) => c.files.map((f) => f.name)));
-    try {
-      for (const f of fs.readdirSync(RECORDINGS_DIR)) {
-        if (!keep.has(f)) fs.unlinkSync(path.join(RECORDINGS_DIR, f));
-      }
-    } catch {}
-  }
+  if (inst.audioCalls.length >= AUDIO_RETENTION) pruneRecordings();
 
   io.emit("update", { instance_id: inst.instance_id, type: "audio", instance: inst });
   res.json({ ok: true, id: safeId, files: entry.files });
@@ -230,6 +269,7 @@ client.on("message", (topic, payload) => {
         delete inst.activeCalls[c.id];
         pushCapped(inst.recentCalls, { ...c, _endedAt: Date.now() });
         updateCallCount(inst, c);
+        updateCapturedDuration(inst, c);
       }
       break;
     }
@@ -272,16 +312,7 @@ client.on("message", (topic, payload) => {
       }
 
       pushCapped(inst.audioCalls, entry, AUDIO_RETENTION);
-
-      // Prune older files beyond retention
-      if (inst.audioCalls.length >= AUDIO_RETENTION) {
-        const keep = new Set(inst.audioCalls.flatMap((c) => c.files.map((f) => f.name)));
-        try {
-          for (const f of fs.readdirSync(RECORDINGS_DIR)) {
-            if (!keep.has(f)) fs.unlinkSync(path.join(RECORDINGS_DIR, f));
-          }
-        } catch {}
-      }
+      if (inst.audioCalls.length >= AUDIO_RETENTION) pruneRecordings();
       break;
     }
     case "call": case "end": case "on": case "off":

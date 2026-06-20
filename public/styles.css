@@ -22,6 +22,7 @@ section h2 { font-size: 13px; text-transform: uppercase; color: var(--muted); ma
 .k { color: var(--muted); }
 .v { font-variant-numeric: tabular-nums; text-align: right; }
 .table-wrap { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; overflow: auto; max-height: 480px; height: 300px; }
+.table-wrap.compact { height: 220px; }
 .rates-cards { display: flex; flex-wrap: wrap; gap: 12px; }
 .rates-cards .card { flex: 0 1 auto; min-width: 200px; }
 .rates-row { display: flex; gap: 12px; align-items: stretch; flex-wrap: nowrap; }
@@ -36,14 +37,20 @@ th, td { text-align: left; padding: 8px 12px; font-size: 13px; border-bottom: 1p
 th { color: var(--muted); font-weight: 600; background: var(--panel-2); position: sticky; top: 0; }
 tr:last-child td { border-bottom: none; }
 tr.encrypted td { background: rgba(239,68,68,.15); }
+tr.no-recorder td { background: rgba(239,68,68,.24); color: #fff; font-weight: 600; }
 tr.monitoring td { background: rgba(138,147,160,.1); }
 td.empty, p.empty { color: var(--muted); font-style: italic; text-align: center; padding: 16px; }
+.alert { border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; font-size: 13px; line-height: 1.4; border: 1px solid; }
+.alert.hidden { display: none; }
+.alert.warn { color: #fff7ed; background: rgba(245,158,11,.20); border-color: rgba(245,158,11,.65); }
+.alert.danger { color: #fff; background: rgba(239,68,68,.28); border-color: rgba(239,68,68,.80); box-shadow: 0 0 0 1px rgba(239,68,68,.25); }
 .muted { color: var(--muted); font-size: 12px; }
 .flags { color: var(--warn); font-family: ui-monospace, monospace; font-size: 12px; }
 code { background: var(--panel-2); padding: 1px 6px; border-radius: 4px; font-size: 12px; }
 .state-recording { color: var(--good); font-weight: 600; }
 .state-active { color: var(--accent); font-weight: 600; }
-.state-idle, .state-inactive { color: var(--muted); }
+.state-assigned { color: var(--warn); font-weight: 600; }
+.state-idle, .state-inactive, .state-available { color: var(--muted); }
 ul.log { list-style: none; padding: 0; margin: 0; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; max-height: 320px; overflow: auto; }
 ul.log li { padding: 6px 12px; border-bottom: 1px solid var(--border); font-size: 12px; font-family: ui-monospace, monospace; }
 ul.log li:last-child { border-bottom: none; }
