@@ -64,7 +64,7 @@ After install:
 npm start                 # same thing, without .env auto-load
 ```
 
-Then open [http://localhost:3000](http://localhost:3000).
+Then open [http://localhost:3080](http://localhost:3080).
 
 ## Configuration
 
@@ -72,7 +72,7 @@ Then open [http://localhost:3000](http://localhost:3000).
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `PORT` | `3000` | HTTP port |
+| `PORT` | `3080` | HTTP port |
 | `MQTT_URL` | `mqtt://localhost:1883` | Broker URL (`mqtt://`, `mqtts://`, `ws://`, `wss://`) |
 | `MQTT_USERNAME` | – | Optional |
 | `MQTT_PASSWORD` | – | Optional |

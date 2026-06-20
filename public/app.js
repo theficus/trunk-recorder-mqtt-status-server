@@ -291,7 +291,7 @@ function initChart() {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      animation: { duration: 200 },
+      animation: false,
       indexAxis: "y",
       scales: {
         x: { stacked: true, beginAtZero: true, ticks: { color: "#8a93a0", stepSize: 1, font: { size: 10 } }, grid: { color: "rgba(38,43,51,.5)" } },
