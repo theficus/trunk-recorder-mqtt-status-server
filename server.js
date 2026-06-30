@@ -317,7 +317,6 @@ client.on("message", (topic, payload) => {
     }
     case "call": case "end": case "on": case "off":
     case "ackresp": case "join": case "data": case "ans_req": case "location":
-      updateCallCount(inst, msg[type]);
       pushCapped(inst.unitEvents, { type, ...msg, _ts: Date.now() }, 200);
       break;
     case "message": case "messages":
