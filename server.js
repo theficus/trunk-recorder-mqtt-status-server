@@ -64,6 +64,10 @@ function pushCapped(arr, item, cap = 100) {
   if (arr.length > cap) arr.length = cap;
 }
 
+function isValidCall(call) {
+  return call && call.id && (call.talkgroup != null || call.freq);
+}
+
 function updateCallCount(inst, call) {
   if (call?.call_num == null) return;
 
@@ -265,9 +269,11 @@ client.on("message", (topic, payload) => {
     }
     case "call_end": {
       const c = msg.call;
-      if (c) {
+      if (c && c.id) {
         delete inst.activeCalls[c.id];
-        pushCapped(inst.recentCalls, { ...c, _endedAt: Date.now() });
+        if (isValidCall(c)) {
+          pushCapped(inst.recentCalls, { ...c, _endedAt: Date.now() });
+        }
         updateCallCount(inst, c);
         updateCapturedDuration(inst, c);
       }
@@ -315,8 +321,31 @@ client.on("message", (topic, payload) => {
       if (inst.audioCalls.length >= AUDIO_RETENTION) pruneRecordings();
       break;
     }
-    case "call": case "end": case "on": case "off":
-    case "ackresp": case "join": case "data": case "ans_req": case "location":
+    case "call": {
+      // Unit-topic 'call' — treat like call_start when possible, but always keep the unit event
+      const c = msg.call || msg;
+      if (c) {
+        inst.activeCalls[c.id] = { ...inst.activeCalls[c.id], ...c, _ts: Date.now() };
+        updateCallCount(inst, c);
+      }
+      pushCapped(inst.unitEvents, { type, ...msg, _ts: Date.now() }, 200);
+      break;
+    }
+    case "end": {
+      // Unit-topic 'end' — treat like call_end when possible and update captured duration
+      const c = msg.call || msg;
+      if (c && c.id) {
+        delete inst.activeCalls[c.id];
+        if (isValidCall(c)) {
+          pushCapped(inst.recentCalls, { ...c, _endedAt: Date.now() });
+        }
+        updateCallCount(inst, c);
+        updateCapturedDuration(inst, c);
+      }
+      pushCapped(inst.unitEvents, { type, ...msg, _ts: Date.now() }, 200);
+      break;
+    }
+    case "on": case "off": case "ackresp": case "join": case "data": case "ans_req": case "location":
       pushCapped(inst.unitEvents, { type, ...msg, _ts: Date.now() }, 200);
       break;
     case "message": case "messages":
