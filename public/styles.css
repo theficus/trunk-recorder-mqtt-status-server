@@ -50,6 +50,7 @@ code { background: var(--panel-2); padding: 1px 6px; border-radius: 4px; font-si
 .state-recording { color: var(--good); font-weight: 600; }
 .state-active { color: var(--accent); font-weight: 600; }
 .state-assigned { color: var(--warn); font-weight: 600; }
+.state-monitoring { color: #8b5cf6; font-weight: 600; }
 .state-idle, .state-inactive, .state-available { color: var(--muted); }
 ul.log { list-style: none; padding: 0; margin: 0; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; max-height: 320px; overflow: auto; }
 ul.log li { padding: 6px 12px; border-bottom: 1px solid var(--border); font-size: 12px; font-family: ui-monospace, monospace; }

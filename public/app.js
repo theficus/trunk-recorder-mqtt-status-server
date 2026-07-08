@@ -88,9 +88,12 @@ function sourceLabel(srcNum, source) {
 function recorderStateInfo(r) {
   const st = (r.rec_state_type || "").toLowerCase();
   if (st === "recording" || r.rec_state === 1) return { key: "recording", label: "Recording", color: "#22c55e" };
+  if (st === "active" || r.rec_state === 3) return { key: "active", label: "Active", color: "#06b6d4" };
   if (st === "idle" || r.rec_state === 4) return { key: "assigned", label: "Assigned", color: "#f59e0b" };
-  if (st === "available" || r.rec_state === 7) return { key: "available", label: "Available", color: "#8a93a0" };
-  return { key: "available", label: "Available", color: "#8a93a0" };
+  if (st === "monitoring" || r.rec_state === 0) return { key: "monitoring", label: "Monitoring", color: "#8b5cf6" };
+  if (st === "inactive" || r.rec_state === 2) return { key: "inactive", label: "Inactive", color: "#6b7280" };
+  if (st === "available" || r.rec_state === 7) return { key: "available", label: "Available", color: "#a1a5a8" };
+  return { key: "available", label: "Available", color: "#a1a5a8" };
 }
 function isNoRecorderCall(c) {
   return c.mon_state === 4 || (c.mon_state_type || "").toLowerCase() === "no_recorder";
@@ -456,8 +459,11 @@ const RECORDER_BLOCK_WIDTH = 0.9;
 const RECORDER_BLOCK_GAP = 0.1;
 const RECORDER_CHART_STATES = [
   { label: "Recording", color: "#22c55e" },
+  { label: "Active", color: "#06b6d4" },
   { label: "Assigned", color: "#f59e0b" },
-  { label: "Available", color: "#8a93a0" },
+  { label: "Monitoring", color: "#8b5cf6" },
+  { label: "Inactive", color: "#6b7280" },
+  { label: "Available", color: "#a1a5a8" },
 ];
 
 function initChart() {
