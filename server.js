@@ -17,6 +17,7 @@ const MESSAGE_TOPIC = process.env.MQTT_MESSAGE_TOPIC || "trunk-recorder/messages
 const AUDIO_ENABLED = (process.env.MQTT_AUDIO_ENABLED || "false").toLowerCase() === "true";
 const RECORDINGS_DIR = path.resolve(process.env.RECORDINGS_DIR || "./recordings");
 const AUDIO_RETENTION = parseInt(process.env.AUDIO_RETENTION || "100", 10);
+const UPDATE_EMIT_INTERVAL_MS = parseInt(process.env.UPDATE_EMIT_INTERVAL_MS || "250", 10);
 
 const app = express();
 const server = http.createServer(app);
@@ -33,6 +34,41 @@ if (AUDIO_ENABLED) {
 }
 
 const instances = {};
+const pendingUpdates = new Map();
+let updateFlushTimer = null;
+
+function hasSocketClients() {
+  return io.engine.clientsCount > 0;
+}
+
+function emitIfClients(event, payload) {
+  if (!hasSocketClients()) return;
+  io.emit(event, payload);
+}
+
+function flushPendingUpdates() {
+  updateFlushTimer = null;
+  if (!hasSocketClients()) {
+    pendingUpdates.clear();
+    return;
+  }
+
+  for (const [instanceId, type] of pendingUpdates.entries()) {
+    const inst = instances[instanceId];
+    if (!inst) continue;
+    io.emit("update", { instance_id: instanceId, type, instance: inst });
+  }
+  pendingUpdates.clear();
+}
+
+function queueInstanceUpdate(instanceId, type) {
+  if (!hasSocketClients()) return;
+  pendingUpdates.set(instanceId, type);
+
+  if (updateFlushTimer) return;
+  updateFlushTimer = setTimeout(flushPendingUpdates, UPDATE_EMIT_INTERVAL_MS);
+  updateFlushTimer.unref?.();
+}
 
 function getInstance(id) {
   const key = id || "default";
@@ -187,7 +223,7 @@ app.post("/api/call-upload", upload.single("audio"), (req, res) => {
   pushCapped(inst.audioCalls, entry, AUDIO_RETENTION);
   if (inst.audioCalls.length >= AUDIO_RETENTION) pruneRecordings();
 
-  io.emit("update", { instance_id: inst.instance_id, type: "audio", instance: inst });
+  queueInstanceUpdate(inst.instance_id, "audio");
   res.json({ ok: true, id: safeId, files: entry.files });
 });
 
@@ -206,12 +242,12 @@ client.on("connect", () => {
       else console.log(`[mqtt] subscribed to ${t}`);
     });
   }
-  io.emit("mqtt-status", { connected: true });
+  emitIfClients("mqtt-status", { connected: true });
 });
 
 client.on("reconnect", () => console.log("[mqtt] reconnecting..."));
 client.on("error", (err) => console.error("[mqtt] error", err.message));
-client.on("close", () => io.emit("mqtt-status", { connected: false }));
+client.on("close", () => emitIfClients("mqtt-status", { connected: false }));
 
 client.on("message", (topic, payload) => {
   let msg;
@@ -358,7 +394,7 @@ client.on("message", (topic, payload) => {
       pushCapped(inst.messages, { type, topic, ...msg, _ts: Date.now() }, 200);
   }
 
-  io.emit("update", { instance_id: inst.instance_id, type, instance: inst });
+  queueInstanceUpdate(inst.instance_id, type);
 });
 
 io.on("connection", (socket) => {
@@ -370,7 +406,7 @@ io.on("connection", (socket) => {
 });
 
 setInterval(() => {
-  io.emit("load-avg", os.loadavg());
+  emitIfClients("load-avg", os.loadavg());
 }, 5000);
 
 server.listen(PORT, () => {
